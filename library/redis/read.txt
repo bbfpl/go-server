@@ -1,0 +1,10 @@
+
+
+import (
+	"web/library/redis"
+)
+
+func main() {
+	redis.Set("youName:uihtml","Bobby")
+	fmt.Println(redis.Get("youName:uihtml"))
+}
