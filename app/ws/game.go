@@ -6,6 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"gopkg.in/olahol/melody.v1"
 	"log"
+	"strconv"
+	"web/library"
 )
 
 var mm = melody.New()
@@ -36,8 +38,9 @@ type GameEvent struct {
 	User      string `json:"user"`      // 用户名
 	Uid       string `json:"uid"`       // 用户id
 	PosX      string `json:"x"`         // x坐标
-	PosY      string `json:"y"`         // x坐标
-	Direction string `json:"direction"` // x坐标
+	PosY      string `json:"y"`         // y坐标
+	Direction string `json:"direction"` // 方向
+	Heart     int    `json:"heart"`     // 血量
 }
 
 type BulletEvent struct {
@@ -65,6 +68,7 @@ func GameInit() {
 		//	PosX:      "250",
 		//	PosY:      "250",
 		//	Direction: "0",
+		//	Heart:     9,
 		//}
 		OnlineUsers[uid] = GameEvent{
 			Type:      "pos",
@@ -73,6 +77,7 @@ func GameInit() {
 			PosX:      "150",
 			PosY:      "150",
 			Direction: "0",
+			Heart:     9,
 		}
 		//玩家加入
 		gameBroadcast("playJoin", OnlineUsers)
@@ -112,10 +117,8 @@ func GameInit() {
 			mm.Broadcast(r)
 		//子弹位置消息
 		case "bullets":
-			_, _, err := getQueryAuth(s)
-			if err != nil {
-				fmt.Println(err)
-			}
+			//_, _, err := getQueryAuth(s)
+
 			e := BulletEvent{
 				Type:    "bullets",
 				Bullets: data["bullets"],
@@ -127,6 +130,31 @@ func GameInit() {
 			}
 			//广播向所有会话广播文本消息
 			mm.Broadcast(r)
+		//受伤减血
+		case "injured":
+			//uid, name, _ := getQueryAuth(s)
+
+			tank := OnlineUsers[data["uid"].(string)]
+
+			e := GameEvent{
+				Type:      "injured",
+				User:      tank.User,
+				Uid:       tank.Uid,
+				PosX:      strconv.Itoa(library.RandInt(0, 760)),
+				PosY:      strconv.Itoa(library.RandInt(0, 700)),
+				Direction: tank.Direction,
+				Heart:     tank.Heart - 1, //血-1
+			}
+			//更新数据
+			OnlineUsers[tank.Uid] = e
+
+			r, err := json.Marshal(e)
+			if err != nil {
+				log.Printf("发生错误: %v", err)
+			}
+			fmt.Println("复活", e)
+			mm.Broadcast(r)
+
 		default:
 			log.Fatalf("type 错误")
 		}
