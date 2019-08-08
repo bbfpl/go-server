@@ -7,6 +7,7 @@ import (
 	"gopkg.in/olahol/melody.v1"
 	"log"
 	"strconv"
+	"sync"
 	"web/library"
 )
 
@@ -19,9 +20,9 @@ func SocketGame() gin.HandlerFunc {
 	}
 }
 
-func gameBroadcast(swtype string, name interface{}) {
+func gameBroadcast(t string, name interface{}) {
 	e := Users{
-		Type: swtype,
+		Type: t,
 		Data: name,
 	}
 	r, err := json.Marshal(e)
@@ -52,7 +53,7 @@ type BulletEvent struct {
 var OnlineUsers = make(map[string]GameEvent)
 
 func GameInit() {
-
+	lock := new(sync.Mutex)
 	// 监听连接事件
 	mm.HandleConnect(func(s *melody.Session) {
 		// 1. 实例化连接消息
@@ -70,21 +71,28 @@ func GameInit() {
 		//	Direction: "0",
 		//	Heart:     9,
 		//}
-		OnlineUsers[uid] = GameEvent{
-			Type:      "pos",
-			User:      name,
-			Uid:       uid,
-			PosX:      "150",
-			PosY:      "150",
-			Direction: "0",
-			Heart:     9,
+		_, ok := OnlineUsers[uid]
+		if ok == false {
+			OnlineUsers[uid] = GameEvent{
+				Type:      "pos",
+				User:      name,
+				Uid:       uid,
+				PosX:      "150",
+				PosY:      "150",
+				Direction: "0",
+				Heart:     9,
+			}
 		}
+		fmt.Println(ok)
+		fmt.Println(OnlineUsers)
 		//玩家加入
 		gameBroadcast("playJoin", OnlineUsers)
 	})
 
 	// 监听接收事件
 	mm.HandleMessage(func(s *melody.Session, msg []byte) {
+		lock.Lock()
+
 		//fmt.Println("ws game 接收消息:", string(msg))
 		var data map[string]interface{}
 		err := json.Unmarshal(msg, &data)
@@ -105,6 +113,7 @@ func GameInit() {
 				PosX:      data["x"].(string),
 				PosY:      data["y"].(string),
 				Direction: data["direction"].(string),
+				Heart:     OnlineUsers[uid].Heart,
 			}
 			//更新数据
 			OnlineUsers[uid] = e
@@ -135,30 +144,49 @@ func GameInit() {
 			//uid, name, _ := getQueryAuth(s)
 
 			tank := OnlineUsers[data["uid"].(string)]
+			heart := tank.Heart - 1
+			fmt.Println("血量:", heart)
+			fmt.Println(heart <= 0)
+			if heart <= 0 {
+				e := GameEvent{
+					Type: "gameOver",
+					User: tank.User,
+					Uid:  tank.Uid,
+				}
 
-			e := GameEvent{
-				Type:      "injured",
-				User:      tank.User,
-				Uid:       tank.Uid,
-				PosX:      strconv.Itoa(library.RandInt(0, 760)),
-				PosY:      strconv.Itoa(library.RandInt(0, 700)),
-				Direction: tank.Direction,
-				Heart:     tank.Heart - 1, //血-1
-			}
-			//更新数据
-			OnlineUsers[tank.Uid] = e
+				r, err := json.Marshal(e)
+				if err != nil {
+					log.Printf("发生错误: %v", err)
+				}
+				fmt.Println("死掉了", e)
+				mm.Broadcast(r)
+			} else {
+				e := GameEvent{
+					Type:      "injured",
+					User:      tank.User,
+					Uid:       tank.Uid,
+					PosX:      strconv.Itoa(library.RandInt(0, 760)),
+					PosY:      strconv.Itoa(library.RandInt(0, 700)),
+					Direction: tank.Direction,
+					Heart:     heart, //血-1
+				}
+				//更新数据
+				OnlineUsers[tank.Uid] = e
 
-			r, err := json.Marshal(e)
-			if err != nil {
-				log.Printf("发生错误: %v", err)
+				r, err := json.Marshal(e)
+				if err != nil {
+					log.Printf("发生错误: %v", err)
+				}
+				fmt.Println("复活", e)
+				mm.Broadcast(r)
+
 			}
-			fmt.Println("复活", e)
-			mm.Broadcast(r)
 
 		default:
 			log.Fatalf("type 错误")
 		}
 
+		lock.Unlock()
 	})
 
 	// 监听连接断开事件

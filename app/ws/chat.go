@@ -48,9 +48,9 @@ func getQueryAuth(s *melody.Session) (string, string, error) {
 	return parseToken.UID, parseToken.Username, nil
 }
 
-func userBroadcast(swtype string, name interface{}) {
+func userBroadcast(t string, name interface{}) {
 	e := Users{
-		Type: swtype,
+		Type: t,
 		Data: name,
 	}
 	r, err := json.Marshal(e)
@@ -89,7 +89,7 @@ func ChatInit() {
 			fmt.Println("发生错误", err)
 		}
 
-		mtype, ok := data["type"]
+		t, ok := data["type"]
 		if !ok {
 			log.Printf("type 不能为空")
 		}
@@ -100,7 +100,7 @@ func ChatInit() {
 			fmt.Println(err)
 		}
 
-		switch mtype {
+		switch t {
 		//消息
 		case "msg":
 
