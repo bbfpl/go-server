@@ -58,12 +58,15 @@ melody封装了websocket
 
 预览
 go run main.go 运行服务
+
 ![1](http://demo.uihtml.com/gitimg/goserver/1.png "1")
 
 聊天时的数据
+
 ![2](http://demo.uihtml.com/gitimg/goserver/2.png "2")
 
 游戏时的数据
+
 ![3](http://demo.uihtml.com/gitimg/goserver/3.png "3")
 
 
