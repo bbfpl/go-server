@@ -40,18 +40,24 @@ go+gin+mysql+redis+websocket
 
 第三方模块列表
 ```go
+
 json web token 模块
 	github.com/dgrijalva/jwt-go
+
 redis
 	github.com/garyburd/redigo
+
 web 框架
 	github.com/gin-gonic/gin
+
 orm 框架
 	github.com/jinzhu/gorm
 	github.com/go-sql-driver/mysql
+
 监听config.yaml是否改变,用于热更新
 	github.com/fsnotify/fsnotify
 	github.com/spf13/viper
+
 melody封装了websocket
 	gopkg.in/olahol/melody.v1
 ```
