@@ -16,6 +16,7 @@ var mm = melody.New()
 func SocketGame() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		fmt.Println("访问ws")
+
 		mm.HandleRequest(c.Writer, c.Request)
 	}
 }
@@ -53,6 +54,7 @@ type BulletEvent struct {
 var OnlineUsers = make(map[string]GameEvent)
 
 func GameInit() {
+	mm.Config.MaxMessageSize = 2048*10
 	lock := new(sync.Mutex)
 	// 监听连接事件
 	mm.HandleConnect(func(s *melody.Session) {
